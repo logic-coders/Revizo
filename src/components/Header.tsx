@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useTheme } from "./ThemeProvider";
 import SearchModal from "./SearchModal";
 import { useState, useEffect } from "react";
@@ -34,7 +35,7 @@ export default function Header() {
       <header className="header header-glass">
         <div className="header-content">
           <Link href="/" className="logo">
-            <div className="logo-icon">R</div>
+            <Image src="/logo.jpg" alt="Revizo Logo" width={36} height={36} className="logo-icon" />
             <span>Revizo</span>
           </Link>
 
