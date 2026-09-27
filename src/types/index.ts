@@ -8,7 +8,7 @@ export interface FollowUpQuestion {
 export interface Question {
   id: string;
   question: string;
-  difficulty: "Easy" | "Medium" | "Hard";
+  difficulty: "Easy" | "Medium" | "Hard" | "Beginner" | "Intermediate" | "Advanced";
   frequency: number; // 1-5 popularity rating
   lastVerified: string; // ISO date string
   answer: {
@@ -21,10 +21,12 @@ export interface Question {
       code: string;
       explanation?: string;
     };
-    tradeoffs: string;
-    followUpQuestions: FollowUpQuestion[];
+    tradeoffs?: string;
+    tradeOffs?: string;
+    followUpQuestions?: FollowUpQuestion[];
+    theyMightAskNext?: FollowUpQuestion[];
     usedInProduction: string;
-    relatedTopics: string[];
+    relatedTopics: (string | {title: string, id: string})[];
   };
 }
 

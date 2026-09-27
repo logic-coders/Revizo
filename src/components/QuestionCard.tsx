@@ -129,14 +129,14 @@ export default function QuestionCard({
           </div>
 
           {/* 7. They Might Ask Next */}
-          {(question.answer.followUpQuestions || question.answer.theyMightAskNext)?.length > 0 && (
+          {((question.answer.followUpQuestions || question.answer.theyMightAskNext) ?? []).length > 0 && (
             <div className="answer-section">
               <div className="answer-section-label">
                 <span className="answer-section-icon">❓</span>
                 They Might Ask Next
               </div>
               <div className="followup-list">
-                {(question.answer.followUpQuestions || question.answer.theyMightAskNext).map((fq: any, idx: number) => (
+                {((question.answer.followUpQuestions || question.answer.theyMightAskNext) ?? []).map((fq: any, idx: number) => (
                   <FollowUpItem key={idx} question={fq.question} answer={fq.answer} />
                 ))}
               </div>
@@ -162,15 +162,19 @@ export default function QuestionCard({
                 Related Topics
               </div>
               <div className="related-topics-list">
-                {question.answer.relatedTopics.map((topic, idx) => (
-                  <button
-                    key={idx}
-                    className="related-topic-chip"
-                    onClick={() => onNavigateToTopic?.(topic)}
-                  >
-                    {topic}
-                  </button>
-                ))}
+                {question.answer.relatedTopics.map((topic, idx) => {
+                  const topicTitle = typeof topic === 'string' ? topic : topic.title;
+                  const topicId = typeof topic === 'string' ? topic : topic.id;
+                  return (
+                    <button
+                      key={idx}
+                      className="related-topic-chip"
+                      onClick={() => onNavigateToTopic?.(topicId)}
+                    >
+                      {topicTitle}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

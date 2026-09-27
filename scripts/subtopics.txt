@@ -1,0 +1,107 @@
+Java 8
+Lambda Expressions
+Functional Interfaces (Predicate, Function, Consumer, Supplier, BiFunction)
+Method References
+Stream API (map, filter, reduce, collect, sorted)
+Optional Class
+Default & Static Methods in Interfaces
+Collectors (groupingBy, partitioningBy, joining)
+Parallel Streams
+Date & Time API (LocalDate, LocalDateTime, Period, Duration)
+CompletableFuture & Async Programming
+Nashorn JavaScript Engine (basic awareness)
+Base64 Encoding/Decoding API
+Java 17
+Records
+Sealed Classes & Interfaces
+Pattern Matching for switch
+Pattern Matching for instanceof
+Text Blocks
+Enhanced Pseudo-Random Number Generators
+Helpful NullPointerExceptions
+Local-Variable Type Inference (var) — carried from Java 10+
+Module System (JPMS) fundamentals
+Vector API (incubator, awareness-level)
+Foreign Function & Memory API (awareness-level)
+Deprecation/removal changes vs Java 8 (e.g., removed modules, security manager deprecation)
+Spring Boot
+Auto-Configuration & @SpringBootApplication
+Dependency Injection & IoC Container
+Bean Lifecycle & Scopes (Singleton, Prototype, Request, Session)
+Spring Data JPA (Repositories, Query Methods, @Query)
+Spring Security (Authentication, Authorization, JWT, OAuth2)
+REST Controllers (@RestController, @RequestMapping, @PathVariable, @RequestBody)
+Exception Handling (@ControllerAdvice, @ExceptionHandler)
+Validation (@Valid, Bean Validation annotations)
+Profiles & Externalized Configuration (application.yml, @Value, @ConfigurationProperties)
+Spring Boot Actuator (health checks, metrics, monitoring)
+AOP (Aspect-Oriented Programming, @Aspect, @Around)
+Transactions (@Transactional, propagation, isolation levels)
+Caching (@Cacheable, @CacheEvict)
+Testing (@SpringBootTest, MockMvc, @DataJpaTest, Mockito)
+Microservices essentials (Feign Client, Circuit Breaker/Resilience4j, API Gateway, Service Discovery/Eureka)
+Spring Boot with Kafka/Redis integration
+Spring AI basics (if relevant to your projects)
+Python
+Data Types & Structures (list, tuple, dict, set)
+List/Dict/Set Comprehensions
+Functions, *args/**kwargs, Default Arguments
+Decorators
+Generators & Iterators
+Lambda Functions
+OOP in Python (Classes, Inheritance, Polymorphism, Magic Methods)
+Exception Handling (try/except/finally, custom exceptions)
+Context Managers (with statement, __enter__/__exit__)
+Modules & Packages
+File Handling
+Multithreading vs Multiprocessing, GIL (Global Interpreter Lock)
+async/await & asyncio basics
+Virtual Environments & Package Management (pip, venv)
+Common Libraries (NumPy, Pandas basics — if relevant to your AI/ML work)
+Web Frameworks basics (FastAPI/Flask, if used in your projects)
+Apache Kafka
+Kafka Architecture (Broker, Topic, Partition, Offset)
+Producer API & Configuration (acks, retries, batching)
+Consumer API & Consumer Groups
+Partitioning Strategy & Keys
+Replication & Fault Tolerance
+Message Ordering Guarantees
+Kafka Connect (basics)
+Kafka Streams (basics — stream processing, KTable/KStream)
+Zookeeper's role (or KRaft mode in newer Kafka)
+Delivery Semantics (At-most-once, At-least-once, Exactly-once)
+Dead Letter Queues / Error Handling patterns
+Kafka vs traditional Message Queues (RabbitMQ comparison — common interview question)
+Schema Registry & Avro (if used)
+Idempotent Producers & Transactions
+Redis
+Data Types (String, List, Set, Sorted Set, Hash, Stream)
+Caching Strategies (Cache-Aside, Write-Through, Write-Behind)
+Expiration & Eviction Policies (TTL, LRU, LFU)
+Persistence (RDB vs AOF)
+Pub/Sub Messaging
+Redis Transactions (MULTI/EXEC)
+Redis Cluster & Sharding
+Redis Sentinel (High Availability)
+Redis as a Session Store
+Redis vs traditional Databases (common interview question)
+Common Commands (SET, GET, EXPIRE, INCR, ZADD, etc.)
+Redis with Spring Boot (@Cacheable, RedisTemplate)
+AI / ML
+Core ML Concepts (Supervised vs Unsupervised vs Reinforcement Learning)
+Bias-Variance Tradeoff, Overfitting/Underfitting
+Feature Engineering & Feature Selection
+Common Algorithms (Linear/Logistic Regression, Decision Trees, Random Forest, XGBoost, KNN, SVM)
+Model Evaluation Metrics (Accuracy, Precision, Recall, F1, ROC-AUC, Confusion Matrix)
+Cross-Validation & Train/Test/Validation Splits
+Neural Networks Basics (Perceptron, Activation Functions, Backpropagation)
+Deep Learning Basics (CNN, RNN — conceptual level)
+NLP Fundamentals (Tokenization, Embeddings, TF-IDF)
+Large Language Models (Transformer architecture basics, Attention mechanism)
+RAG (Retrieval-Augmented Generation) — architecture, vector embeddings, chunking strategies
+Vector Databases (FAISS, ChromaDB — similarity search basics)
+Prompt Engineering fundamentals
+LLM Agents & Tool-Calling / Function-Calling
+Model Fine-tuning vs RAG vs Prompt Engineering (when to use which — common interview question)
+Hallucination & Guardrails (evaluation, mitigation strategies)
+Context Window Management & Memory Management for LLM applications
