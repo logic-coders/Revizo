@@ -121,7 +121,7 @@ async function run(slug: string) {
         try {
           const answerData = await generateQuestionContent(subject.title, qTitle);
           const fullQuestion = {
-            id: \`\${slug}-\${topic.id}-\${qIdx}\`,
+            id: `${slug}-${topic.id}-${qIdx}`,
             question: qTitle,
             difficulty: "Intermediate",
             frequency: 4,
@@ -129,17 +129,17 @@ async function run(slug: string) {
             answer: answerData
           };
 
-          const filePath = path.join(outputDir, \`\${fullQuestion.id}.json\`);
+          const filePath = path.join(outputDir, `${fullQuestion.id}.json`);
           fs.writeFileSync(filePath, JSON.stringify(fullQuestion, null, 2));
-          console.log(\`✅ Saved \${filePath}\`);
+          console.log(`✅ Saved ${filePath}`);
         } catch (e) {
-          console.error(\`❌ Failed to generate question: \${qTitle}\`, e);
+          console.error(`❌ Failed to generate question: ${qTitle}`, e);
         }
         qIdx++;
       }
     }
   }
-  console.log(\`🎉 Generation complete for \${subject.title}!\`);
+  console.log(`🎉 Generation complete for ${subject.title}!`);
 }
 
 const arg = process.argv[2];
