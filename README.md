@@ -1,4 +1,4 @@
-# Revizo 🚀
+# Revizo 
 
 Your one-stop solution for software engineer interview preparation and last-minute revision.
 
