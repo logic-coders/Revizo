@@ -124,19 +124,19 @@ export default function QuestionCard({
               Trade-offs / When NOT to Use
             </div>
             <div className="tradeoffs-box">
-              <p className="answer-section-text">{question.answer.tradeoffs}</p>
+              <p className="answer-section-text">{question.answer.tradeoffs || question.answer.tradeOffs}</p>
             </div>
           </div>
 
           {/* 7. They Might Ask Next */}
-          {question.answer.followUpQuestions.length > 0 && (
+          {(question.answer.followUpQuestions || question.answer.theyMightAskNext)?.length > 0 && (
             <div className="answer-section">
               <div className="answer-section-label">
                 <span className="answer-section-icon">❓</span>
                 They Might Ask Next
               </div>
               <div className="followup-list">
-                {question.answer.followUpQuestions.map((fq, idx) => (
+                {(question.answer.followUpQuestions || question.answer.theyMightAskNext).map((fq: any, idx: number) => (
                   <FollowUpItem key={idx} question={fq.question} answer={fq.answer} />
                 ))}
               </div>

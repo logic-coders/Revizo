@@ -33,19 +33,19 @@ async function publishGenerated() {
   for (const file of files) {
     const relativePath = path.relative(generatedDir, file);
     // e.g. java-17/records/java-17-records-1.json -> content/java-17/records/java-17-records-1.json
-    const s3Key = \`content/\${relativePath}\`;
+    const s3Key = `content/${relativePath}`;
     
     try {
       const content = fs.readFileSync(file, "utf8");
       await uploadToS3(s3Key, content);
-      console.log(\`✅ Uploaded \${s3Key}\`);
+      console.log(`✅ Uploaded ${s3Key}`);
       totalUploaded++;
     } catch (e) {
-      console.error(\`❌ Failed to upload \${s3Key}: \`, e);
+      console.error(`❌ Failed to upload ${s3Key}: `, e);
     }
   }
 
-  console.log(\`\\n🎉 Published \${totalUploaded} reviewed questions to S3!\`);
+  console.log(`\n🎉 Published ${totalUploaded} reviewed questions to S3!`);
 }
 
 publishGenerated().catch(console.error);

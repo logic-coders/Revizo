@@ -75,7 +75,7 @@ async function runMCQGeneration(subject: string, subtopic: string) {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "meta/llama-3.2-90b-vision-instruct",
+      model: "meta/llama-3.1-8b-instruct",
       messages: [
         { role: "user", content: prompt }
       ],
