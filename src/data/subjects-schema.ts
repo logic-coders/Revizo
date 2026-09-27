@@ -1617,7 +1617,32 @@ errors = grep(read_lines("app.log"), "ERROR")`,
     totalQuestions: 0,
     color: "#231f20",
     gradient: "linear-gradient(135deg, #231f20 0%, #4a4a4a 50%, #e8520e 100%)",
-    categories: [],
+    categories: [
+      {
+        id: "core-concepts",
+        title: "Core Concepts",
+        subTopics: [
+          { id: "topics", title: "Topics & Partitions", questions: [] },
+          { id: "brokers", title: "Brokers & Cluster", questions: [] },
+        ],
+      },
+      {
+        id: "clients",
+        title: "Clients",
+        subTopics: [
+          { id: "producers-consumers", title: "Producers & Consumers", questions: [] },
+          { id: "consumer-groups", title: "Consumer Groups & Offsets", questions: [] },
+        ],
+      },
+      {
+        id: "advanced",
+        title: "Advanced Features",
+        subTopics: [
+          { id: "replication", title: "Replication & Fault Tolerance", questions: [] },
+          { id: "kafka-streams", title: "Kafka Streams", questions: [] },
+        ],
+      },
+    ],
   },
   {
     id: "redis",
@@ -1631,7 +1656,32 @@ errors = grep(read_lines("app.log"), "ERROR")`,
     totalQuestions: 0,
     color: "#dc382d",
     gradient: "linear-gradient(135deg, #dc382d 0%, #a12b23 100%)",
-    categories: [],
+    categories: [
+      {
+        id: "data-structures",
+        title: "Data Structures",
+        subTopics: [
+          { id: "strings", title: "Strings & Lists", questions: [] },
+          { id: "sets-hashes", title: "Sets, Hashes & Sorted Sets", questions: [] },
+        ],
+      },
+      {
+        id: "architecture",
+        title: "Architecture & Patterns",
+        subTopics: [
+          { id: "persistence", title: "Persistence (RDB/AOF)", questions: [] },
+          { id: "caching-eviction", title: "Caching Patterns & Eviction Policies", questions: [] },
+        ],
+      },
+      {
+        id: "advanced",
+        title: "Advanced Features",
+        subTopics: [
+          { id: "pub-sub", title: "Pub/Sub & Streams", questions: [] },
+          { id: "clustering", title: "Clustering & Replication", questions: [] },
+        ],
+      },
+    ],
   },
   {
     id: "java-17",
@@ -1645,7 +1695,32 @@ errors = grep(read_lines("app.log"), "ERROR")`,
     totalQuestions: 0,
     color: "#5382a1",
     gradient: "linear-gradient(135deg, #5382a1 0%, #f89820 100%)",
-    categories: [],
+    categories: [
+      {
+        id: "core-updates",
+        title: "Core Language Updates",
+        subTopics: [
+          { id: "records", title: "Records", questions: [] },
+          { id: "sealed-classes", title: "Sealed Classes", questions: [] },
+          { id: "pattern-matching", title: "Pattern Matching", questions: [] },
+        ],
+      },
+      {
+        id: "concurrency",
+        title: "Concurrency",
+        subTopics: [
+          { id: "virtual-threads", title: "Virtual Threads (Project Loom)", questions: [] },
+        ],
+      },
+      {
+        id: "features",
+        title: "Features & Migration",
+        subTopics: [
+          { id: "switch-text", title: "Switch Expressions & Text Blocks", questions: [] },
+          { id: "migration", title: "Migration from Java 8/11", questions: [] },
+        ],
+      },
+    ],
   },
   {
     id: "ai-ml",
@@ -1659,7 +1734,31 @@ errors = grep(read_lines("app.log"), "ERROR")`,
     totalQuestions: 0,
     color: "#9b59b6",
     gradient: "linear-gradient(135deg, #9b59b6 0%, #3498db 100%)",
-    categories: [],
+    categories: [
+      {
+        id: "core-ml",
+        title: "Core ML Concepts",
+        subTopics: [
+          { id: "ml-basics", title: "Core ML Concepts", questions: [] },
+          { id: "model-training", title: "Model Training & Evaluation", questions: [] },
+        ],
+      },
+      {
+        id: "deep-learning",
+        title: "Deep Learning & Generative AI",
+        subTopics: [
+          { id: "neural-networks", title: "Neural Networks Basics", questions: [] },
+          { id: "llms-rag", title: "LLMs, Prompting & RAG Basics", questions: [] },
+        ],
+      },
+      {
+        id: "mlops",
+        title: "MLOps",
+        subTopics: [
+          { id: "deployment", title: "MLOps & Deployment Basics", questions: [] },
+        ],
+      },
+    ],
   },
 ];
 

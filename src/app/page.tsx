@@ -2,7 +2,11 @@ import Link from "next/link";
 import { subjects } from "@/data/subjects";
 
 export default function HomePage() {
-  const totalQuestions = subjects.reduce((acc, s) => acc + s.totalQuestions, 0);
+  const totalQuestions = subjects.reduce((acc, s) => 
+    acc + s.categories.reduce((catAcc, cat) => 
+      catAcc + cat.subTopics.reduce((subAcc, topic) => subAcc + (topic.questions?.length || 0), 0)
+    , 0)
+  , 0);
   const activeSubjects = subjects.filter((s) => s.categories.length > 0).length;
 
   return (
@@ -47,6 +51,10 @@ export default function HomePage() {
           {subjects.map((subject) => {
             const hasContent = subject.categories.length > 0;
             const CardWrapper = hasContent ? Link : "div";
+            
+            const totalQuestions = subject.categories.reduce((acc, cat) => 
+              acc + cat.subTopics.reduce((subAcc, topic) => subAcc + (topic.questions?.length || 0), 0)
+            , 0);
 
             return (
               <CardWrapper
@@ -74,9 +82,9 @@ export default function HomePage() {
                 </div>
                 <div className="subject-card-meta">
                   <span className="subject-card-badge">{subject.difficulty}</span>
-                  {subject.totalQuestions > 0 && (
+                  {totalQuestions > 0 && (
                     <span className="subject-card-questions">
-                      {subject.totalQuestions} questions
+                      {totalQuestions} questions
                     </span>
                   )}
                 </div>

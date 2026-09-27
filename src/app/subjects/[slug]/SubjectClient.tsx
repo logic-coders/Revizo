@@ -148,8 +148,33 @@ export default function SubjectWorkspaceContent({
     );
   }
 
-  // If redirecting, don't render content yet to avoid flashes
+  // If redirecting or no questions, handle appropriately
   if (!activeItem) {
+    if (allQuestions.length === 0) {
+      return (
+        <div style={{ padding: "40px", textAlign: "center", width: "100%" }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🚧</div>
+          <h2>Content is being generated</h2>
+          <p style={{ color: "var(--text-secondary)", marginTop: "8px" }}>
+            The AI pipeline is currently drafting questions for this subject. Check back shortly!
+          </p>
+          <Link
+            href="/"
+            style={{
+              display: "inline-block",
+              marginTop: "24px",
+              padding: "12px 24px",
+              background: "var(--surface-hover)",
+              borderRadius: "var(--radius-md)",
+              color: "var(--text-primary)",
+              textDecoration: "none",
+            }}
+          >
+            ← Back to subjects
+          </Link>
+        </div>
+      );
+    }
     return null; 
   }
 
