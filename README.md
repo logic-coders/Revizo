@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Revizo 🚀
+
+Your one-stop solution for software engineer interview preparation and last-minute revision.
+
+Revizo is an AI-curated, static web platform that helps developers prep for technical interviews across the stack — Java 8, Java 17, Spring Boot, Kafka, Redis, Python, AI/ML, and more. Instead of scattered blog posts and outdated tutorials, every topic is broken down into the most frequently asked interview questions, each answered in a consistent, interview-ready format designed to help you explain concepts confidently — not just recognize them.
+
+## Why Revizo?
+* **Interview-first answers** — not textbook definitions. Every question includes a quick-answer hook, a mental model, trade-offs, likely follow-ups, and real-world usage.
+* **AI-curated content** — questions are ranked by how frequently they're actually asked, sourced and structured via an AI content pipeline (NVIDIA Nemotron).
+* **Built for speed** — fully static site (Next.js SSG, one route per question), deployed on Vercel's free tier, with CDN edge caching for near-instant page loads.
+* **Structured for revision** — Subjects → Categories → Sub-topics → Questions, navigable via a persistent sidebar (direct-jump) plus linear Prev/Next flow.
+* **Modern, focused UI** — dark-mode-first, distraction-free, one question at a time.
+
+## How it looks
+
+Each answer follows a fixed 9-section template, applied identically across every subject:
+
+| Section | What it covers |
+| :--- | :--- |
+| **1. Quick Answer** | One-line, quotable definition |
+| **2. Mental Model** | Real-world analogy for recall |
+| **3. What It Is** | Precise technical explanation |
+| **4. Why It Exists** | The problem it solves |
+| **5. Demo** | Code / CLI / config / diagram (subject-dependent) |
+| **6. Trade-offs** | When not to use it |
+| **7. They Might Ask Next** | Pre-answered follow-up questions |
+| **8. Used in Production** | Real-world grounding |
+| **9. Related Topics** | Linked sub-topics for continued revision |
+
+*(Screenshots coming soon)*
+
+## Tech Stack
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | Next.js 16 (static export), Tailwind CSS v4 |
+| **Content storage** | JSON files in Amazon S3 (source of truth) |
+| **Content generation** | AI pipeline powered by NVIDIA Nemotron |
+| **Hosting / CDN** | Vercel (free tier) |
+| **Rebuild automation** | S3 event → Lambda → Vercel Deploy Hook |
+| **Search** | Fuse.js (client-side, static) |
+| **Code highlighting** | PrismJS |
+
+### Architecture at a glance:
+
+```text
+AI Pipeline → writes JSON → S3 (content source of truth)
+                                │
+                     S3 event → Lambda → Vercel Deploy Hook
+                                │
+                Vercel build → static pages (one route per question)
+                                │
+                        Deployed to global CDN edge
+```
+
+Full architecture, content schema, and UX spec live in `requirement.md`.
+
+## Project Structure 
+
+```text
+revizo/
+├── src/
+│   ├── app/                  # Next.js App Router (one route per question)
+│   ├── components/           # Sidebar, QuestionCard, Header, SearchModal, etc.
+│   ├── data/                 # Current fallback data / subjects
+│   └── types/                # TypeScript interfaces
+├── scripts/
+│   └── generate-content.ts   # AI content-pipeline script (NVIDIA Nemotron)
+├── public/                   # Static assets, PWA manifest, service worker
+├── requirement.md            # Full product/technical spec
+└── README.md
+```
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# 1. Clone the repo
+git clone https://github.com/logic-coders/Revizo.git
+cd Revizo
+
+# 2. Install dependencies
+npm install
+
+# 3. Set up environment variables
+cp .env.example .env
+# Add your NVIDIA API key, AWS credentials, and S3 bucket name
+
+# 4. Run the content pipeline (generates/updates question data)
+npm run generate-content
+
+# 5. Start the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit [http://localhost:3000](http://localhost:3000) to view the app locally.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Description |
+| :--- | :--- |
+| `NVIDIA_API_KEY` | API key for the Nemotron model used in content generation |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | AWS credentials for the S3 content bucket |
+| `S3_BUCKET_NAME` | Bucket where generated question JSON is stored |
 
-## Learn More
+> **Note:** Never commit real credentials. Use `.env` locally and Vercel's Environment Variables in production.
 
-To learn more about Next.js, take a look at the following resources:
+## Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Revizo is designed to run entirely on Vercel's free tier:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Push to `main` (or merge a PR).
+2. New content in S3 triggers a Lambda → Vercel Deploy Hook.
+3. Vercel rebuilds the static site, pulling the latest content from S3.
+4. The rebuilt site is served from Vercel's global CDN — zero server-side compute at request time.
 
-## Deploy on Vercel
+## Roadmap
+- [x] Core subjects: Java 8, Java 17, Spring Boot, Kafka, Redis, Python, AI/ML
+- [x] Bookmark / "mark as revised" tracking (local-storage based)
+- [x] Per-subject progress indicators
+- [x] PWA offline support for revision on the go
+- [ ] System Design, SQL/Databases, DSA, DevOps subjects
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contributing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Contributions are welcome! Please open an issue to discuss significant changes before submitting a PR. For content corrections (a question's answer is inaccurate or outdated), open an issue tagged `content` with the subject/topic/question ID.
+
+## License
+
+MIT — free to use, modify, and share.
+
+*Built for developers, by developers preparing for their next interview. 💜*
