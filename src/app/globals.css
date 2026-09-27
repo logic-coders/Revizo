@@ -1412,7 +1412,6 @@ pre[class*="language-"] {
   }
 
   .hero-stats {
-    flex-direction: column;
     gap: 16px;
   }
 
