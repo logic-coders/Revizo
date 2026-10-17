@@ -48,59 +48,11 @@ async function syncS3() {
     }
   }
 
-  // Write out the new subjects.ts file
-  const outputPath = path.join(process.cwd(), "src", "data", "subjects.ts");
+  // Write out the synced subjects file
+  const outputPath = path.join(process.cwd(), "src", "data", "subjects-synced.json");
   
-  // We write it out as a TypeScript file that exports the object
-  const fileContent = `import { Subject } from "@/types";
-
-export const subjects: Subject[] = ${JSON.stringify(subjects, null, 2)};
-
-export function getSubjectBySlug(slug: string): Subject | undefined {
-  return subjects.find((s) => s.slug === slug);
-}
-
-export function getAllSubjectSlugs(): string[] {
-  return subjects.map((s) => s.slug);
-}
-
-export function getSearchableItems(): import("@/types").SearchableItem[] {
-  const items: import("@/types").SearchableItem[] = [];
-  for (const subject of subjects) {
-    for (const category of subject.categories) {
-      for (const subTopic of category.subTopics) {
-        items.push({
-          type: "subtopic",
-          subjectSlug: subject.slug,
-          subjectTitle: subject.title,
-          categoryId: category.id,
-          categoryTitle: category.title,
-          subTopicId: subTopic.id,
-          subTopicTitle: subTopic.title,
-          questionId: subTopic.questions[0]?.id,
-          text: \`\${subject.title} \${category.title} \${subTopic.title}\`,
-        });
-        for (const question of subTopic.questions) {
-          items.push({
-            type: "question",
-            subjectSlug: subject.slug,
-            subjectTitle: subject.title,
-            categoryId: category.id,
-            categoryTitle: category.title,
-            subTopicId: subTopic.id,
-            subTopicTitle: subTopic.title,
-            questionId: question.id,
-            questionText: question.question,
-            difficulty: question.difficulty,
-            text: \`\${subject.title} \${category.title} \${subTopic.title} \${question.question}\`,
-          });
-        }
-      }
-    }
-  }
-  return items;
-}
-`;
+  // We write it out as JSON
+  const fileContent = JSON.stringify(subjects, null, 2);
 
   fs.writeFileSync(outputPath, fileContent);
   console.log(`✅ S3 Sync Complete. Downloaded ${downloadedCount} questions and generated src/data/subjects.ts.`);

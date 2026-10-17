@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "tsx scripts/sync-s3.ts",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync-s3": "tsx scripts/sync-s3.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1141.0",

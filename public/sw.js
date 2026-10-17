@@ -1,4 +1,4 @@
-const CACHE_NAME = 'revizo-cache-v1';
+const CACHE_NAME = 'revizo-cache-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.webmanifest',
