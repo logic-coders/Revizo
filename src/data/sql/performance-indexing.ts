@@ -7,49 +7,45 @@ export const sqlPerformanceIndexingCategory: Category = {
   subTopics: [
     {
       id: "sql-indexing",
-      title: "B-Tree Indexes & Query Tuning",
+      title: "B-Tree Internals, Execution Plans & Query Tuning",
       questions: [
         {
-          id: "sql-clustered-vs-nonclustered",
-          question: "What is the difference between a Clustered Index and a Non-Clustered (Secondary) Index?",
+          id: "sql-composite-index-leftmost-prefix",
+          question: "What is a Composite (Multi-Column) Index and how does the Leftmost Prefix Rule work?",
           difficulty: "Hard",
           frequency: 5,
-          lastVerified: "2026-10-15",
+          lastVerified: "2026-10-16",
           answer: {
-            quickAnswer: "A Clustered Index dictates the actual physical sorting order of table data on disk (leaf nodes ARE the data pages; limit 1 per table); a Non-Clustered Index is a separate B-Tree structure whose leaf nodes contain index keys and row pointers (RID/PK) back to the base table (multiple allowed).",
-            mentalModel: "A Clustered Index is like an actual telephone directory: people are physically arranged alphabetically by Last Name; the book IS the data. A Non-Clustered Index is the index at the back of a cookbook: it lists recipe names alphabetically with a page number pointing to where the actual recipe lives in the book.",
-            whatItIs: "Indexes in relational databases (PostgreSQL, MySQL InnoDB, SQL Server) are predominantly balanced search trees (B+ Trees) created to avoid full sequential table scans and accelerate search queries from O(N) to O(log N).",
-            whyItExists: "Without indexes, finding a single row among 100 million records requires reading every single 8KB disk page into buffer pool memory. Clustered and non-clustered indexes provide logarithmic lookups and range scans.",
+            quickAnswer: "A Composite Index indexes multiple columns together in a single B-Tree sorted hierarchically. The Leftmost Prefix Rule states that the query optimizer can only use the index if the query filters on the leftmost (leading) column(s) in exact sequential order.",
+            mentalModel: "Think of an old telephone book sorted by (LastName, FirstName, MiddleName). You can easily find 'Smith, John' (uses both) or everyone with last name 'Smith' (uses leading column). But if someone asks for everyone whose first name is 'John' without providing a last name, the phonebook is useless — you have to scan all 500 pages from front to back!",
+            whatItIs: "An index created on two or more columns of a table: `CREATE INDEX idx ON table(col1, col2, col3)`. Internally, the B-Tree keys are composite tuples sorted primarily by col1, secondarily by col2, and tertiarily by col3.",
+            whyItExists: "Queries frequently filter on multiple dimensions simultaneously (e.g., `WHERE tenant_id = 5 AND status = 'ACTIVE'`). A single composite index satisfies both filters in one B-Tree traversal, avoiding bitmap index merges.",
             comparisonTable: {
-              title: "Head-to-Head Comparison: Clustered vs Non-Clustered Index",
-              headers: ["Feature / Dimension", "Clustered Index", "Non-Clustered (Secondary) Index"],
+              title: "The Leftmost Prefix Rule: Index (A, B, C) Usability Matrix",
+              headers: ["Query Filter Condition", "Index Usable?", "Access Method Used", "Explanation"],
               rows: [
-                ["Physical Data Order", "Alters the physical storage order of data rows on disk", "Does not alter physical storage order; independent B-Tree"],
-                ["Leaf Node Contents", "Leaf nodes contain the ACTUAL table data rows (all columns)", "Leaf nodes contain index key values + row pointers (PK or RID)"],
-                ["Quantity Per Table", "Strictly 1 per table (data can only be sorted one physical way)", "Multiple per table (up to 999 in SQL Server, 64 in MySQL)"],
-                ["Lookup Performance", "Fastest possible lookups: single B-Tree traverse directly to data", "Requires B-Tree traverse + secondary lookup (Bookmark Lookup / Key Lookup)"],
-                ["Covering Index Capability", "Inherently covering (contains all table columns)", "Can cover queries if all requested columns are included in index key or INCLUDE clause"],
-                ["Disk Space Overhead", "No additional table space (the index IS the table data structure)", "Requires additional disk space to store the secondary B-Tree"],
-                ["DML (Write) Impact", "Heavy: updates to clustered key can cause page splits and row moves", "Moderate: must update secondary index tree on INSERT/UPDATE/DELETE"]
+                ["WHERE A = 1", "YES", "Index Seek", "Leading column A is matched directly."],
+                ["WHERE A = 1 AND B = 2", "YES", "Index Seek", "Both leading columns A and B matched; highly selective."],
+                ["WHERE A = 1 AND B = 2 AND C = 3", "YES", "Index Seek (Full)", "All columns matched; narrowest possible point seek."],
+                ["WHERE A = 1 AND C = 3", "PARTIAL", "Index Seek on A, Filter on C", "Seeks on A; once inside range, scans and checks C (skips B)."],
+                ["WHERE B = 2 AND C = 3", "NO (or Skip Scan)", "Full Index Scan or Table Scan", "Violates Leftmost Prefix: Leading column A is missing!"],
+                ["WHERE C = 3", "NO", "Full Table Scan", "Leading column A is missing; cannot navigate B-Tree."],
+                ["WHERE A > 10 AND B = 2", "PARTIAL", "Index Range Seek on A only", "Range operator on A stops B-Tree navigation; B cannot be used for seek!"]
               ]
             },
             codeDemo: {
               language: "sql",
-              code: "-- 1. Creating a Table with Clustered Primary Key:\nCREATE TABLE orders (\n    order_id BIGINT PRIMARY KEY, -- Clustered Index in InnoDB / SQL Server\n    customer_id BIGINT NOT NULL,\n    order_date DATE NOT NULL,\n    status VARCHAR(30) NOT NULL,\n    total_amount NUMERIC(12, 2) NOT NULL\n);\n\n-- 2. Creating a Non-Clustered Index for fast customer lookups:\nCREATE INDEX idx_orders_customer_id ON orders(customer_id);\n\n-- 3. Creating a Composite Covering Index (Eliminates Key Lookup completely!):\n-- In SQL Server / PostgreSQL:\nCREATE INDEX idx_orders_covering \nON orders(customer_id, order_date) \nINCLUDE (status, total_amount);\n\n-- This query is satisfied 100% from index leaf pages (Index-Only Scan):\nSELECT status, total_amount \nFROM orders \nWHERE customer_id = 42 AND order_date >= '2024-01-01';"
+              code: "-- 1. Creating Composite Index:\nCREATE INDEX idx_orders_user_status_date \nON orders (user_id, status, created_at);\n\n-- ========================================================\n-- FULL INDEX SEEK: Matches A, B, and C in order\n-- ========================================================\nEXPLAIN ANALYZE\nSELECT order_id, total_amount \nFROM orders \nWHERE user_id = 42 \n  AND status = 'COMPLETED' \n  AND created_at >= '2024-01-01';\n\n-- ========================================================\n-- ANTI-PATTERN: Range operator halts index seek for subsequent columns\n-- ========================================================\n-- Here, user_id > 100 uses index seek, but 'status' CANNOT use seek!\nSELECT * FROM orders WHERE user_id > 100 AND status = 'PENDING';"
             },
-            tradeoffs: "Every secondary index added speeds up SELECT reads but penalizes every INSERT, UPDATE, and DELETE because all secondary B-Trees must be updated synchronously in write-ahead logs and disk pages. Over-indexing is a primary cause of database write stalls.",
+            tradeoffs: "Column ordering in composite indexes is critical: place Equality columns FIRST (highest selectivity), and Range / Inequality columns (`>`, `<`, `BETWEEN`) LAST. Once a range operator is encountered, no subsequent columns in the index can be used for B-Tree seeks.",
             followUpQuestions: [
               {
-                question: "What is an Index-Only Scan (Covering Index)?",
-                answer: "An Index-Only Scan occurs when all columns requested in SELECT, WHERE, and ORDER BY are present in the index itself. The database never visits the table data pages, cutting I/O by 80-90%."
-              },
-              {
-                question: "Why does PostgreSQL treat clustered indexes differently from MySQL InnoDB?",
-                answer: "In PostgreSQL, all tables are heap tables, and secondary indexes point to tuple IDs (ctid). The CLUSTER command sorts the table once, but subsequent INSERTs do not preserve physical clustering automatically."
+                question: "What is an Index Skip Scan?",
+                answer: "In MySQL 8.0+ and Oracle, if the leading column has very low cardinality (e.g., gender with 2 values), the optimizer can skip through the leading column and still use subsequent indexed columns without a full table scan."
               }
             ],
-            usedInProduction: "Uber and Stripe design primary keys using sequential time-prefixed IDs (like UUID v7 or Snowflake) so clustered index insertions append to the right edge of B-Tree pages, eliminating expensive random page splits.",
-            relatedTopics: ["Index Seek vs Index Scan", "SARGable Queries", "Database Internals"]
+            usedInProduction: "Multi-tenant SaaS architectures index `(tenant_id, created_at DESC)` on every transactional table to isolate customer queries to a single B-Tree branch.",
+            relatedTopics: ["Index Seek vs Index Scan", "Covering Indexes", "SARGable Queries"]
           }
         },
         {
@@ -124,6 +120,156 @@ export const sqlPerformanceIndexingCategory: Category = {
             ],
             usedInProduction: "GitHub and Shopify maintain strict CI linters on SQL migrations that reject any query applying functions to indexed date columns, preventing accidental production table locks.",
             relatedTopics: ["Index Seek vs Index Scan", "Clustered vs Non-Clustered Indexes", "EXPLAIN ANALYZE"]
+          }
+        },
+        {
+          id: "sql-covering-index-include",
+          question: "What is the difference between a Composite Index and an Index with an INCLUDE clause (Covering Index)?",
+          difficulty: "Hard",
+          frequency: 4,
+          lastVerified: "2026-10-16",
+          answer: {
+            quickAnswer: "A Composite Index stores columns in both the intermediate B-Tree branch nodes (affecting sort order and size) and leaf nodes; an index with `INCLUDE` stores payload columns ONLY at the leaf level, keeping the B-Tree narrow and fast while still enabling Index-Only Scans.",
+            mentalModel: "A Composite Index `(LastName, FirstName)` is alphabetizing books by both last name and first name (more work to alphabetize). An INCLUDE index `(LastName) INCLUDE (Bio, PhotoUrl)` sorts books solely by last name, but puts a copy of the author's photo right on the spine so you don't have to open the book to see it.",
+            whatItIs: "An optimization technique supported in PostgreSQL (`CREATE INDEX ... INCLUDE`) and Microsoft SQL Server to create Covering Indexes without bloating intermediate B-Tree navigation nodes.",
+            whyItExists: "If an index contains all columns requested by a SELECT query, the query engine performs an **Index-Only Scan**, avoiding expensive random I/O table lookups (Bookmark/Key Lookups). Storing non-filter columns in INCLUDE avoids inflating index tree depth.",
+            comparisonTable: {
+              title: "Head-to-Head Comparison: Composite Index vs Index with INCLUDE",
+              headers: ["Feature / Dimension", "Composite Index `(A, B)`", "Index on `(A) INCLUDE (B)`"],
+              rows: [
+                ["Column B in Intermediate B-Tree Nodes?", "YES: B is stored at every tree level for branching", "NO: Stored ONLY in leaf pages as unindexed payload"],
+                ["Can Column B be used in WHERE / JOIN / ORDER BY seeks?", "YES: Can be used in filter predicates and sort operations", "NO: Cannot be used to seek or sort (it is pure payload)"],
+                ["Data Type Constraints", "Subject to B-Tree index key size limits (e.g., 2704 bytes in Postgres)", "Can include large data types (VARCHAR(MAX), JSONB, TEXT)"],
+                ["Index Size & Tree Depth", "Larger tree footprint; fewer keys per 8KB page; taller tree", "Smaller navigation nodes; higher fan-out; shallower tree"],
+                ["Write (DML) Overhead", "Must re-balance B-Tree if B changes", "Lighter: only leaf page updated if B changes"],
+                ["Primary Purpose", "Multi-column search filtering and sorting", "Achieving Index-Only Scans for read-heavy projection queries"]
+              ]
+            },
+            codeDemo: {
+              language: "sql",
+              code: "-- 1. Creating a Covering Index with INCLUDE in PostgreSQL:\nCREATE INDEX idx_orders_customer_covering \nON orders (customer_id) \nINCLUDE (order_date, total_amount, status);\n\n-- ========================================================\n-- 2. Achieving an Index-Only Scan:\n-- All columns (customer_id, order_date, total_amount, status)\n-- are present in the index leaf pages. Table heap pages are NEVER read!\n-- ========================================================\nEXPLAIN ANALYZE\nSELECT order_date, total_amount, status\nFROM orders\nWHERE customer_id = 94812;\n-- Output: \"Index Only Scan using idx_orders_customer_covering on orders\""
+            },
+            tradeoffs: "In PostgreSQL, Index-Only Scans require checking the visibility map to ensure rows are visible to all MVCC transactions without reading heap pages. If a table has frequent updates and `VACUUM` has not run, Index-Only Scans fall back to reading heap pages.",
+            followUpQuestions: [
+              {
+                question: "What is a Bookmark Lookup (or Key Lookup)?",
+                answer: "When a secondary index satisfies the WHERE condition but the SELECT clause asks for columns not present in the index, the engine must make a random I/O jump to the base table to fetch the remaining columns. This is a Key Lookup."
+              }
+            ],
+            usedInProduction: "High-volume user profile APIs (`/api/v1/user/summary`) use covering indexes on `(user_id) INCLUDE (display_name, avatar_url, tier)` to serve 50,000 requests/sec with zero base table I/O.",
+            relatedTopics: ["Index Seek vs Index Scan", "Leftmost Prefix Rule", "MVCC Internals"]
+          }
+        },
+        {
+          id: "sql-btree-hash-gin-gist",
+          question: "What is the difference between B-Tree, Hash, GIN, and GiST indexes in PostgreSQL?",
+          difficulty: "Hard",
+          frequency: 5,
+          lastVerified: "2026-10-16",
+          answer: {
+            quickAnswer: "B-Tree is the universal default for equality and range queries (`=, <, >`); Hash is specialized for O(1) equality only; GIN (Generalized Inverted Index) is optimized for composite/multi-element types like JSONB, full-text search, and arrays; GiST (Generalized Search Tree) handles spatial (PostGIS), geometric, and range-overlap queries.",
+            mentalModel: "B-Tree is an alphabetical phonebook. Hash is a locker room where each locker number is computed from a key. GIN is the back-of-the-book index that lists every page number where a specific keyword appears. GiST is a tree of bounding boxes on a geographic map.",
+            whatItIs: "Specialized index access methods available in advanced relational engines like PostgreSQL designed to accelerate diverse data types beyond scalar numbers and strings.",
+            whyItExists: "Modern databases store rich data types: geospatial coordinates (lat/long), full-text articles, JSON documents, and IP network ranges. Standard B-Trees cannot efficiently query 'Does this polygon intersect with that polygon?' or 'Does this JSON array contain key X?'.",
+            comparisonTable: {
+              title: "Head-to-Head Comparison: PostgreSQL Index Types",
+              headers: ["Index Type", "Supported Operators", "Internal Architecture", "Update Overhead", "Best Suited For"],
+              rows: [
+                ["B-Tree (Default)", "`=, <, <=, >, >=, BETWEEN, LIKE 'abc%'`", "Self-balancing multi-way search tree (B+ Tree)", "Low to Moderate", "Numbers, timestamps, standard text, foreign keys, PKs"],
+                ["Hash", "`=` only (strictly equality)", "In-memory hash table on disk with bucket chaining", "Very Low (faster INSERT than B-Tree)", "Large UUIDs or long strings compared strictly with equality"],
+                ["GIN (Inverted)", "`@> (contains), ? (exists), @@ (full-text match)`", "Inverted index mapping individual items to posting lists", "High (every inserted element updates multiple posting lists)", "JSONB documents, integer arrays (`int[]`), full-text search (`tsvector`)"],
+                ["GiST (Search Tree)", "`&& (overlap), << (strictly left of), <-> (k-NN distance)`", "Balanced tree of hierarchical bounding predicates", "Moderate", "PostGIS spatial data, geometric polygons, IP CIDR ranges, nearest-neighbor"],
+                ["BRIN (Block Range)", "`=, <, <=, >, >=`", "Stores min/max values for physical chunks of pages (e.g. 128 pages)", "Ultra Low (tiny index size: 1% of B-Tree)", "Massive append-only time-series data naturally sorted on disk"]
+              ]
+            },
+            codeDemo: {
+              language: "sql",
+              code: "-- 1. JSONB indexing with GIN:\nCREATE TABLE audit_events (\n    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n    event_payload JSONB NOT NULL\n);\n-- Index all JSON keys and values:\nCREATE INDEX idx_audit_payload_gin ON audit_events USING GIN (event_payload);\n\n-- Extremely fast seek inside JSON documents:\nSELECT * FROM audit_events \nWHERE event_payload @> '{\"action\": \"LOGIN_FAILED\", \"source\": \"API\"}';\n\n-- 2. BRIN Index for 1-Billion Row Time-Series Table:\nCREATE INDEX idx_logs_created_brin ON system_logs USING BRIN (created_at);"
+            },
+            tradeoffs: "GIN indexes are expensive to update because inserting a single row containing a JSON object with 20 keys requires updating 20 distinct posting lists. PostgreSQL uses a `fastupdate` buffer to mitigate this during bulk writes.",
+            followUpQuestions: [
+              {
+                question: "When should you prefer BRIN over B-Tree?",
+                answer: "When a table has hundreds of millions of rows and data is inserted sequentially in physical disk order (like append-only logs or IoT sensor data). A BRIN index on 100GB of data can be as small as 10MB."
+              }
+            ],
+            usedInProduction: "E-commerce product catalogs store arbitrary dynamic attributes in PostgreSQL `attributes JSONB` with a GIN index to power faceted search filters without schema migrations.",
+            relatedTopics: ["Covering Indexes", "SARGable Queries", "Database Internals"]
+          }
+        },
+        {
+          id: "sql-explain-analyze-interpretation",
+          question: "What is the difference between EXPLAIN and EXPLAIN ANALYZE, and how do you read execution plans?",
+          difficulty: "Hard",
+          frequency: 5,
+          lastVerified: "2026-10-16",
+          answer: {
+            quickAnswer: "EXPLAIN prints the optimizer's estimated execution plan without running the query; EXPLAIN ANALYZE actually executes the query on the database, recording true elapsed runtime, actual row counts, loop iterations, and buffer memory hits.",
+            mentalModel: "EXPLAIN is Google Maps estimating: 'This route should take 20 minutes based on historical traffic statistics'. EXPLAIN ANALYZE is actually driving the car on the highway with a stopwatch: 'It actually took 45 minutes because of an unexpected construction detour'.",
+            whatItIs: "The premier diagnostic tool used by database engineers to inspect the query planner's choices, cost calculations, index usage, join algorithms, and physical resource bottlenecks.",
+            whyItExists: "Diagnosing slow queries without an execution plan is blind guesswork. Comparing estimated rows against actual rows instantly reveals stale database statistics or poor cardinality estimations.",
+            comparisonTable: {
+              title: "Head-to-Head Comparison: EXPLAIN vs EXPLAIN ANALYZE",
+              headers: ["Feature / Dimension", "EXPLAIN", "EXPLAIN ANALYZE", "EXPLAIN (ANALYZE, BUFFERS)"],
+              rows: [
+                ["Executes Query?", "NO: Pure mathematical planning model", "YES: Query is executed for real!", "YES: Query is executed for real"],
+                ["Safe for Write Queries (INSERT/UPDATE/DELETE)?", "100% Safe (doesn't modify data)", "DANGEROUS: Will actually modify/delete data! Wrap in a ROLLBACK transaction", "Dangerous unless wrapped in ROLLBACK"],
+                ["Execution Time Metric", "Hypothetical cost units (`cost=0.00..45.12`)", "Real millisecond elapsed time (`actual time=0.034..1.214 rows=50`)", "Real millisecond elapsed time"],
+                ["Buffer Cache Tracking", "No", "No", "YES: reports shared hit/read blocks (RAM vs Disk I/O)"],
+                ["Detects Stale Statistics?", "No (only shows what optimizer guessed)", "YES: Huge gap between estimated rows and actual rows flags stale stats", "Yes"]
+              ]
+            },
+            codeDemo: {
+              language: "sql",
+              code: "-- Running EXPLAIN ANALYZE with Buffers in PostgreSQL:\nEXPLAIN (ANALYZE, BUFFERS, VERBOSE)\nSELECT c.name, COUNT(o.order_id) AS total_orders\nFROM customers c\nLEFT JOIN orders o ON c.id = o.customer_id\nWHERE c.created_at >= '2024-01-01'\nGROUP BY c.id, c.name;\n\n-- How to Safely Test a DELETE query with EXPLAIN ANALYZE:\nBEGIN;\nEXPLAIN ANALYZE \nDELETE FROM inactive_users WHERE last_login < '2020-01-01';\nROLLBACK; -- Critical: Rolls back all deleted rows!"
+            },
+            tradeoffs: "Never run `EXPLAIN ANALYZE` on a raw `DELETE FROM users` in production without an explicit `BEGIN; ... ROLLBACK;` wrapper, as it will permanently delete the records.",
+            followUpQuestions: [
+              {
+                question: "What does 'Buffers: shared hit=421 read=12' mean in EXPLAIN ANALYZE?",
+                answer: "'shared hit' means pages were retrieved directly from database RAM (buffer pool). 'read' means pages had to be fetched via physical disk I/O. A slow query with high 'read' is I/O-bound."
+              }
+            ],
+            usedInProduction: "Site Reliability Engineers automate continuous query profiling via `auto_explain` in PostgreSQL, automatically logging EXPLAIN ANALYZE trees for any query taking longer than 500ms.",
+            relatedTopics: ["Physical Join Algorithms", "Index Seek vs Index Scan", "SARGable Queries"]
+          }
+        },
+        {
+          id: "sql-partitioning-vs-sharding",
+          question: "What is the difference between Database Partitioning (Range, List, Hash) and Database Sharding?",
+          difficulty: "Hard",
+          frequency: 5,
+          lastVerified: "2026-10-16",
+          answer: {
+            quickAnswer: "Partitioning splits a large table into smaller sub-tables within a single database instance managed transparently by the engine; Sharding distributes database partitions across multiple independent physical server nodes (shared-nothing horizontal scaling).",
+            mentalModel: "Partitioning is organizing a filing cabinet by putting receipts into 12 colored folders (one for each month) in the same drawer. Sharding is renting 12 separate storage warehouses in 12 different cities and shipping each month's receipts to a different warehouse.",
+            whatItIs: "Architectural techniques for scaling relational databases when tables grow beyond hundreds of gigabytes or billions of rows.",
+            whyItExists: "Single B-Trees degrade when they exceed memory buffer pools (causing page swapping). Partitioning keeps active working sets in memory, while sharding overcomes single-machine CPU, memory, and disk IOPS limits.",
+            comparisonTable: {
+              title: "Head-to-Head Comparison: Table Partitioning vs Database Sharding",
+              headers: ["Feature / Dimension", "Table Partitioning (Vertical / Declarative)", "Database Sharding (Horizontal Partitioning)"],
+              rows: [
+                ["Hardware Topology", "Single database server (or primary-replica cluster)", "Multiple independent database servers (Shared-Nothing Architecture)"],
+                ["Management Layer", "Managed natively by RDBMS query optimizer", "Managed by application routing layer or proxy (Vitess, Citus)"],
+                ["Partition Pruning", "Automatic: queries with partition key skip untouched partitions", "Router sends query only to specific target shard node"],
+                ["Cross-Partition Transactions / Joins", "Full ACID support; standard JOINs across partitions", "Complex distributed 2-Phase Commit (2PC) or forbidden"],
+                ["Operational Complexity", "Low: standard DDL (`PARTITION BY RANGE (date)`)", "Very high: shard re-balancing, failover, node synchronization"],
+                ["Primary Limit Overcome", "B-Tree index depth, vacuum overhead, page eviction", "Total server disk capacity, write IOPS, network bandwidth"]
+              ]
+            },
+            codeDemo: {
+              language: "sql",
+              code: "-- Declarative Range Partitioning in PostgreSQL:\nCREATE TABLE measurement_logs (\n    sensor_id INT NOT NULL,\n    log_time TIMESTAMP NOT NULL,\n    temperature NUMERIC(5, 2)\n) PARTITION BY RANGE (log_time);\n\n-- Create individual monthly partitions:\nCREATE TABLE measurements_2024_01 PARTITION OF measurement_logs\n    FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');\n\nCREATE TABLE measurements_2024_02 PARTITION OF measurement_logs\n    FOR VALUES FROM ('2024-02-01') TO ('2024-03-01');\n\n-- Partition Pruning in Action:\nEXPLAIN SELECT * FROM measurement_logs \nWHERE log_time >= '2024-01-10' AND log_time < '2024-01-15';\n-- Plan strictly inspects measurements_2024_01 and completely ignores all other months!"
+            },
+            tradeoffs: "If a query does not include the partition key in its WHERE clause, the engine must scan EVERY single partition (scatter-gather), which is slower than querying an unpartitioned indexed table.",
+            followUpQuestions: [
+              {
+                question: "What is Partition Pruning?",
+                answer: "Partition pruning is an optimizer feature where the query planner statically or dynamically discards partitions that cannot possibly contain matching rows based on the query's WHERE filter."
+              }
+            ],
+            usedInProduction: "Uber and Instagram shard their core PostgreSQL and MySQL databases across hundreds of nodes using `shard_id = user_id % num_shards`, routing reads/writes via Citus or Vitess.",
+            relatedTopics: ["B-Tree Indexes", "EXPLAIN ANALYZE", "System Design"]
           }
         }
       ]
