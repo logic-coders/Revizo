@@ -2777,12 +2777,33 @@ pre[class*="language-"] {
   }
 
   .hero-stats {
-    flex-direction: column;
-    gap: 10px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
   }
 
   .hero-stat {
-    padding: 8px 14px;
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    padding: 6px 4px;
+  }
+
+  .hero-stat-value {
+    font-size: 1.25rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .hero-stat-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+    word-break: break-word;
   }
 
   .content-area {
