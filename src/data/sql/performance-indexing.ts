@@ -3,7 +3,7 @@ import { Category } from "@/types";
 export const sqlPerformanceIndexingCategory: Category = {
   id: "sql-performance-indexing",
   title: "Performance, Indexing & Optimization",
-  icon: "⚡",
+  icon: "📁",
   subTopics: [
     {
       id: "sql-indexing",

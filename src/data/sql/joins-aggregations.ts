@@ -3,7 +3,7 @@ import { Category } from "@/types";
 export const sqlJoinsAggregationsCategory: Category = {
   id: "sql-joins-aggregations",
   title: "Joins, Aggregations & Grouping",
-  icon: "🔗",
+  icon: "📁",
   subTopics: [
     {
       id: "sql-joins",

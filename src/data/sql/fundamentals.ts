@@ -3,7 +3,7 @@ import { Category } from "@/types";
 export const sqlFundamentalsCategory: Category = {
   id: "sql-fundamentals",
   title: "SQL Fundamentals & Core Execution",
-  icon: "⚡",
+  icon: "📁",
   subTopics: [
     {
       id: "sql-execution-order",

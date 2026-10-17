@@ -3,7 +3,7 @@ import { Category } from "@/types";
 export const sqlTransactionsSchemaCategory: Category = {
   id: "sql-transactions-schema",
   title: "Transactions, Concurrency & Database Objects",
-  icon: "🛡️",
+  icon: "📁",
   subTopics: [
     {
       id: "sql-concurrency-acid",

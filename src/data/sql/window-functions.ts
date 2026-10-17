@@ -3,7 +3,7 @@ import { Category } from "@/types";
 export const sqlWindowFunctionsCategory: Category = {
   id: "sql-window-functions",
   title: "Window Functions & Analytical SQL",
-  icon: "🪟",
+  icon: "📁",
   subTopics: [
     {
       id: "sql-window-advanced",

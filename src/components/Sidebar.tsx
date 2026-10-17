@@ -134,7 +134,9 @@ export default function Sidebar({
                 onClick={() => toggleCategory(category.id)}
               >
                 <span className="sidebar-category-icon">
-                  {category.icon || "📂"}
+                  {category.icon === "📁" || category.icon === "📂" || !category.icon
+                    ? (expandedCategories.has(category.id) ? "📂" : "📁")
+                    : category.icon}
                 </span>
                 <span>{category.title}</span>
                 <span style={{ fontSize: "0.7rem", color: "var(--text-tertiary)" }}>
@@ -186,12 +188,35 @@ export default function Sidebar({
                           tabIndex={0}
                           aria-expanded={isSubTopicExpanded}
                         >
-                          <span style={{ fontSize: "0.7rem" }}>
-                            {revised ? "✅" : "○"}
+                          <span
+                            className="sidebar-subtopic-folder-icon"
+                            style={{
+                              fontSize: "0.85rem",
+                              opacity: 0.85,
+                              flexShrink: 0,
+                              display: "inline-flex",
+                              alignItems: "center",
+                            }}
+                          >
+                            {isSubTopicExpanded ? "📂" : "📁"}
                           </span>
                           <span className="sidebar-subtopic-title">
                             {subTopic.title}
                           </span>
+                          {revised && (
+                            <span
+                              className="sidebar-subtopic-revised-dot"
+                              style={{
+                                width: "6px",
+                                height: "6px",
+                                borderRadius: "50%",
+                                backgroundColor: "var(--success, #22c55e)",
+                                flexShrink: 0,
+                                display: "inline-block",
+                              }}
+                              title="Revised"
+                            />
+                          )}
                           <span className="sidebar-subtopic-count">
                             {subTopic.questions.length}
                           </span>

@@ -266,7 +266,7 @@ export default function SubjectWorkspaceContent({
                 gap: "6px",
               }}
             >
-              {revised ? "✅ Revised" : "Mark as Revised"}
+              {revised ? "✓ Revised" : "Mark as Revised"}
             </button>
           </div>
           <p className="topic-question-count">
