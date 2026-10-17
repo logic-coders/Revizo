@@ -3,12 +3,14 @@ import { java8Subject } from "./java8-data";
 import { java17Subject } from "./java17-data";
 import { springBootSubject } from "./springboot-data";
 import { systemDesignSubject } from "./systemdesign-data";
+import { sqlSubject } from "./sql-data";
 
 export const subjects: Subject[] = [
   java8Subject,
   java17Subject,
   springBootSubject,
   systemDesignSubject,
+  sqlSubject,
   {
     "id": "python",
     "slug": "python",
