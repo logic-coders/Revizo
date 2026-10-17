@@ -1,0 +1,51 @@
+{
+  "id": "java-concurrency-synchronized-vs-reentrantlock-1",
+  "question": "What is the difference between `synchronized` and `ReentrantLock`? When would you choose one over the other?",
+  "difficulty": "Intermediate",
+  "frequency": 5,
+  "lastVerified": "2026-10-17",
+  "answer": {
+    "quickAnswer": "`synchronized` is a built-in Java keyword for mutual exclusion — simple but limited. `ReentrantLock` (from `java.util.concurrent.locks`) is a more flexible API-based lock that supports try-locking, timed locking, interruptible locking, and fairness policies.",
+    "mentalModel": "Think of `synchronized` as a hotel room key that you either have or you don't — if someone else has it, you wait with no way out. `ReentrantLock` is a smart lock with a keypad: you can knock and walk away if no one answers (tryLock), set a timeout, or ask to be let in in the order you arrived (fairness).",
+    "whatItIs": "`synchronized` is a Java language keyword that implicitly acquires a monitor lock on an object/class. `ReentrantLock` is a class in `java.util.concurrent.locks` that implements the `Lock` interface and provides the same mutual-exclusion semantics, but with significantly more control. Both are *reentrant*, meaning the same thread can acquire the lock it already holds without deadlocking.",
+    "whyItExists": "Java introduced `ReentrantLock` in Java 5 (JSR-166) because `synchronized` was too rigid for real-world concurrency needs. You cannot interrupt a thread waiting on a `synchronized` block, you cannot attempt to lock without blocking forever, and you cannot enforce fairness (FIFO ordering). `ReentrantLock` solves all of these.",
+    "codeDemo": {
+      "language": "java",
+      "code": "// --- synchronized (simple, implicit) ---\npublic class Counter {\n    private int count = 0;\n\n    public synchronized void increment() {\n        count++; // Lock acquired on 'this', released automatically\n    }\n}\n\n// --- ReentrantLock (explicit, flexible) ---\nimport java.util.concurrent.locks.ReentrantLock;\n\npublic class BankAccount {\n    private double balance;\n    private final ReentrantLock lock = new ReentrantLock(true); // true = fair lock\n\n    public void withdraw(double amount) {\n        lock.lock(); // MUST unlock in finally\n        try {\n            if (balance >= amount) balance -= amount;\n        } finally {\n            lock.unlock();\n        }\n    }\n\n    // tryLock: don't block forever\n    public boolean tryWithdraw(double amount) {\n        if (lock.tryLock()) {\n            try {\n                if (balance >= amount) { balance -= amount; return true; }\n            } finally {\n                lock.unlock();\n            }\n        }\n        return false; // Lock not available, do something else\n    }\n}"
+    },
+    "keyDifferences": {
+      "table": [
+        { "feature": "Syntax", "synchronized": "Keyword (implicit)", "reentrantLock": "API (explicit lock/unlock)" },
+        { "feature": "Try-lock (non-blocking)", "synchronized": "❌ Not possible", "reentrantLock": "✅ tryLock()" },
+        { "feature": "Timed lock attempt", "synchronized": "❌ Not possible", "reentrantLock": "✅ tryLock(timeout, unit)" },
+        { "feature": "Interruptible wait", "synchronized": "❌ Not possible", "reentrantLock": "✅ lockInterruptibly()" },
+        { "feature": "Fairness policy", "synchronized": "❌ No guarantee", "reentrantLock": "✅ new ReentrantLock(true)" },
+        { "feature": "Condition variables", "synchronized": "wait()/notify() on Object", "reentrantLock": "✅ Multiple Condition objects" },
+        { "feature": "Forget to unlock risk", "synchronized": "❌ N/A (auto-released)", "reentrantLock": "⚠️ Must use try/finally" },
+        { "feature": "Performance (modern JVM)", "synchronized": "Similar (JIT-optimized)", "reentrantLock": "Similar" }
+      ]
+    },
+    "tradeOffs": "Always use `synchronized` when it's sufficient — it's simpler, less error-prone (no risk of forgetting `unlock()`), and the JVM optimizes it heavily (biased locking, lock elision). Reach for `ReentrantLock` only when you need its advanced features: non-blocking tryLock, timeout, interruptibility, fairness, or multiple condition queues.",
+    "theyMightAskNext": [
+      {
+        "question": "What is a deadlock and how do you prevent it between two account transfers?",
+        "answer": "A deadlock occurs when Thread-A holds Lock-1 and waits for Lock-2, while Thread-B holds Lock-2 and waits for Lock-1. Prevent it by always acquiring locks in a **consistent global order** (e.g., sort accounts by ID and always lock the lower ID first). `ReentrantLock.tryLock()` with a timeout is another strategy — if you can't get both locks, release what you have and retry."
+      },
+      {
+        "question": "What is `volatile` and can it replace `synchronized`?",
+        "answer": "`volatile` guarantees visibility (all threads see the latest write) but does NOT guarantee atomicity. `balance -= amount` is a read-modify-write that requires mutual exclusion. `volatile` alone would cause a race condition. Use `volatile` only for simple flags (e.g., `volatile boolean running = true`)."
+      },
+      {
+        "question": "What is `ReadWriteLock` and when is it better?",
+        "answer": "`ReentrantReadWriteLock` allows multiple concurrent readers but only one writer. This is ideal for read-heavy workloads (e.g., a configuration cache): all threads can read simultaneously, but a write blocks all readers. It provides much higher throughput than a plain lock when reads vastly outnumber writes."
+      }
+    ],
+    "usedInProduction": "In high-throughput Spring Boot services, `ReentrantLock` with `tryLock()` is used inside payment processing to avoid indefinite blocking when acquiring account locks. `synchronized` is sufficient for simple counters, caches, or singleton initialization. `ReadWriteLock` is commonly used in in-memory caching layers where reads dominate.",
+    "relatedTopics": [
+      { "title": "volatile and Java Memory Model", "id": "volatile-java-memory-model" },
+      { "title": "HashMap vs ConcurrentHashMap", "id": "hashmap-vs-concurrenthashmap" },
+      { "title": "Deadlock Prevention", "id": "deadlock-prevention" },
+      { "title": "Atomic Classes (AtomicInteger)", "id": "atomic-classes" }
+    ]
+  }
+}

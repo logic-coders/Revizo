@@ -1,0 +1,46 @@
+{
+  "id": "java-concurrency-hashmap-vs-concurrenthashmap-1",
+  "question": "What is the difference between `HashMap` and `ConcurrentHashMap`? Why is `HashMap` dangerous in concurrent applications?",
+  "difficulty": "Intermediate",
+  "frequency": 5,
+  "lastVerified": "2026-10-17",
+  "answer": {
+    "quickAnswer": "`HashMap` is not thread-safe — concurrent puts can cause infinite loops, data loss, or corruption. `ConcurrentHashMap` is a thread-safe alternative that uses segment-level (Java 7) or bucket-level CAS+synchronized (Java 8+) locking, allowing high-concurrency reads and writes without locking the entire map.",
+    "mentalModel": "Imagine a library where anyone can simultaneously grab books (`HashMap`). If two librarians rearrange shelves at the same time, books end up in the wrong place or a shelf collapses. `ConcurrentHashMap` assigns each shelf its own librarian — only the librarian for that shelf needs to pause when rearranging it; all other shelves operate normally.",
+    "whatItIs": "`HashMap` is a standard non-synchronized hash table. Its internal structure (array of linked lists/trees, load factor, resize logic) is written for single-threaded use. `ConcurrentHashMap` is a purpose-built thread-safe map. In Java 8+, it uses a combination of CAS (Compare-And-Swap) operations for lock-free reads and `synchronized` only on individual buckets (nodes) during writes — making it dramatically more scalable than wrapping a `HashMap` with `Collections.synchronizedMap()`.",
+    "whyItExists": "Before `ConcurrentHashMap`, developers used `Hashtable` (which locks the entire map on every operation) or `Collections.synchronizedMap()` (same problem). Both become bottlenecks under high concurrency. `ConcurrentHashMap` was introduced in Java 5 to provide fine-grained locking so that multiple threads can write to different parts of the map at the same time.",
+    "codeDemo": {
+      "language": "java",
+      "code": "// ❌ DANGEROUS: HashMap in a multi-threaded context\nMap<String, Integer> unsafeMap = new HashMap<>();\n// Two threads calling put() simultaneously can:\n// 1. Cause an infinite loop during resize (Java 7, circular link)\n// 2. Silently lose one update (Java 8+)\n// 3. Return stale/null values\n\n// ✅ SAFE OPTION 1: ConcurrentHashMap (recommended for high concurrency)\nMap<String, Integer> safeMap = new ConcurrentHashMap<>();\nsafeMap.put(\"account-1\", 1000); // Thread-safe\nsafeMap.computeIfAbsent(\"account-2\", k -> 500); // Atomic compound op\n\n// Atomic increment - avoids a separate get+put race condition\nsafeMap.merge(\"account-1\", 100, Integer::sum);\n\n// ✅ SAFE OPTION 2: Collections.synchronizedMap (simpler, but locks whole map)\nMap<String, Integer> syncMap = Collections.synchronizedMap(new HashMap<>());\n// ⚠️ Even with synchronizedMap, compound operations like\n// 'if not present then put' are NOT atomic — still need external sync!\n\n// The correct way for atomic conditional put:\nconcurrentMap.putIfAbsent(\"key\", value); // Atomic in ConcurrentHashMap\n\n// Java 8 internal structure:\n// Bucket 0: [A -> 10] -> [D -> 40]  (only bucket 0 locked when writing here)\n// Bucket 1: [B -> 20]               (bucket 1 can be written concurrently)\n// Bucket 2: [C -> 30]               (bucket 2 can be written concurrently)"
+    },
+    "keyDifferences": {
+      "table": [
+        { "feature": "Thread Safety", "hashMap": "❌ Not thread-safe", "concurrentHashMap": "✅ Fully thread-safe" },
+        { "feature": "Locking Strategy", "hashMap": "None", "concurrentHashMap": "CAS + per-bucket synchronized (Java 8+)" },
+        { "feature": "Null keys/values", "hashMap": "✅ Allows one null key, null values", "concurrentHashMap": "❌ No null keys or values (throws NPE)" },
+        { "feature": "Read performance", "hashMap": "Fastest (no overhead)", "concurrentHashMap": "Near-identical (reads are lock-free)" },
+        { "feature": "Write performance (concurrent)", "hashMap": "Corrupts data", "concurrentHashMap": "Very high (only locks one bucket)" },
+        { "feature": "Iteration under modification", "hashMap": "ConcurrentModificationException", "concurrentHashMap": "Weakly consistent (no exception, may miss updates)" },
+        { "feature": "Atomic compound ops", "hashMap": "❌ Must use external sync", "concurrentHashMap": "✅ putIfAbsent, compute, merge" }
+      ]
+    },
+    "tradeOffs": "Prefer `ConcurrentHashMap` in multi-threaded contexts. Note that `null` keys/values are not allowed (by design — `null` would be ambiguous: does the key not exist, or does it map to null?). Also, iteration is *weakly consistent* — it won't throw `ConcurrentModificationException`, but may not reflect the latest writes. For single-threaded contexts, plain `HashMap` is always faster.",
+    "theyMightAskNext": [
+      {
+        "question": "What happens when two threads execute `balance = balance - amount` simultaneously?",
+        "answer": "This is a classic race condition. Both threads read the same value of `balance` (say, 1000), both subtract their amounts (100 and 200), and both write back. One write overwrites the other, so the final balance is either 900 or 800 — never the correct 700. This requires synchronization, `AtomicReference`, or optimistic locking to prevent."
+      },
+      {
+        "question": "How does HashMap work internally? What is the load factor and when does it resize?",
+        "answer": "HashMap stores entries in an array of buckets. Each key's `hashCode()` is computed and mapped to a bucket index. Collisions go into a linked list (Java 7) or a red-black tree when the chain exceeds 8 (Java 8+). The default load factor is 0.75 — when 75% of buckets are filled, the map doubles in size (resize), rehashing all existing entries. This is the resize operation where race conditions in HashMap are most dangerous."
+      }
+    ],
+    "usedInProduction": "In Spring Boot microservices, `ConcurrentHashMap` is commonly used as an in-memory cache for session data, rate-limiting counters, or feature flags. Its atomic `compute`, `merge`, and `putIfAbsent` operations are essential for idempotent payment processing where you want to register a payment ID exactly once across concurrent requests.",
+    "relatedTopics": [
+      { "title": "synchronized vs ReentrantLock", "id": "synchronized-vs-reentrantlock" },
+      { "title": "Atomic Classes", "id": "atomic-classes" },
+      { "title": "Java Memory Model", "id": "java-memory-model" },
+      { "title": "volatile keyword", "id": "volatile-java-memory-model" }
+    ]
+  }
+}

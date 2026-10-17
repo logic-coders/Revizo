@@ -13,6 +13,8 @@ import "prismjs/components/prism-json";
 import "prismjs/components/prism-yaml";
 import "prismjs/components/prism-sql";
 
+import TableView, { parseTableData } from "./TableView";
+
 interface CodeBlockProps {
   code: string;
   language: string;
@@ -61,9 +63,32 @@ export default function CodeBlock({ code, language, explanation }: CodeBlockProp
       json: "json",
       yaml: "yaml",
       sql: "sql",
+      table: "markup",
     };
     return map[lang.toLowerCase()] || "markup";
   };
+
+  const parsedTable = parseTableData(code, language);
+
+  if (parsedTable) {
+    return (
+      <TableView
+        table={parsedTable}
+        onCopy={handleCopy}
+        copied={copied}
+        explanation={explanation}
+        rawView={
+          <div className="code-block-content" style={{ borderRadius: "0 0 12px 12px" }}>
+            <pre className={`language-${getPrismLanguage(language)}`} tabIndex={0} suppressHydrationWarning>
+              <code ref={codeRef} className={`language-${getPrismLanguage(language)}`} suppressHydrationWarning>
+                {code}
+              </code>
+            </pre>
+          </div>
+        }
+      />
+    );
+  }
 
   return (
     <div className="code-block-wrapper">

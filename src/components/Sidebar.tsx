@@ -8,7 +8,9 @@ interface SidebarProps {
   subject: Subject;
   activeCategoryId: string | null;
   activeSubTopicId: string | null;
+  activeQuestionId?: string | null;
   onSelectSubTopic: (categoryId: string, subTopicId: string) => void;
+  onSelectQuestion?: (categoryId: string, subTopicId: string, questionId: string) => void;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -17,14 +19,19 @@ export default function Sidebar({
   subject,
   activeCategoryId,
   activeSubTopicId,
+  activeQuestionId,
   onSelectSubTopic,
+  onSelectQuestion,
   isOpen,
   onClose,
 }: SidebarProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set()
   );
-  const { isRevised, getProgressForSubject } = useBookmarks();
+  const [expandedSubTopics, setExpandedSubTopics] = useState<Set<string>>(
+    new Set()
+  );
+  const { isRevised, getProgressForSubject, isBookmarked } = useBookmarks();
 
   // Count total sub-topics for progress
   const totalSubTopics = subject.categories.reduce(
@@ -32,6 +39,14 @@ export default function Sidebar({
     0
   );
   const progress = getProgressForSubject(subject.slug, totalSubTopics);
+
+  // Dynamically compute total questions — never stale
+  const totalQuestionsActual = subject.categories.reduce(
+    (acc, cat) =>
+      acc +
+      cat.subTopics.reduce((subAcc, st) => subAcc + (st.questions?.length || 0), 0),
+    0
+  );
 
   // Expand active category by default
   useEffect(() => {
@@ -51,6 +66,18 @@ export default function Sidebar({
         next.delete(categoryId);
       } else {
         next.add(categoryId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSubTopic = (subTopicId: string) => {
+    setExpandedSubTopics((prev) => {
+      const next = new Set(prev);
+      if (next.has(subTopicId)) {
+        next.delete(subTopicId);
+      } else {
+        next.add(subTopicId);
       }
       return next;
     });
@@ -82,7 +109,7 @@ export default function Sidebar({
             <div>
               <div className="sidebar-subject-name">{subject.title}</div>
               <div className="sidebar-subject-count">
-                {subject.totalQuestions} questions · {totalSubTopics} topics
+                {totalQuestionsActual} questions · {totalSubTopics} topics
               </div>
             </div>
           </div>
@@ -127,24 +154,116 @@ export default function Sidebar({
                   {category.subTopics.map((subTopic) => {
                     const topicKey = `${subject.slug}/${category.id}/${subTopic.id}`;
                     const revised = isRevised(topicKey);
+                    const isSubTopicExpanded = expandedSubTopics.has(subTopic.id);
+                    const hasQuestions = subTopic.questions && subTopic.questions.length > 0;
+
                     return (
-                      <div
-                        key={subTopic.id}
-                        className={`sidebar-subtopic-link ${
-                          activeSubTopicId === subTopic.id ? "active" : ""
-                        }`}
-                        onClick={() => {
-                          onSelectSubTopic(category.id, subTopic.id);
-                          onClose();
-                        }}
-                      >
-                        <span style={{ fontSize: "0.7rem" }}>
-                          {revised ? "✅" : "○"}
-                        </span>
-                        <span>{subTopic.title}</span>
-                        <span className="sidebar-subtopic-count">
-                          {subTopic.questions.length}
-                        </span>
+                      <div key={subTopic.id} className="sidebar-subtopic-group">
+                        <div
+                          className={`sidebar-subtopic-link ${
+                            activeSubTopicId === subTopic.id ? "active" : ""
+                          }`}
+                          onClick={() => {
+                            if (hasQuestions) {
+                              toggleSubTopic(subTopic.id);
+                            } else {
+                              onSelectSubTopic(category.id, subTopic.id);
+                              onClose();
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              if (hasQuestions) {
+                                toggleSubTopic(subTopic.id);
+                              } else {
+                                onSelectSubTopic(category.id, subTopic.id);
+                                onClose();
+                              }
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          aria-expanded={isSubTopicExpanded}
+                        >
+                          <span style={{ fontSize: "0.7rem" }}>
+                            {revised ? "✅" : "○"}
+                          </span>
+                          <span className="sidebar-subtopic-title">
+                            {subTopic.title}
+                          </span>
+                          <span className="sidebar-subtopic-count">
+                            {subTopic.questions.length}
+                          </span>
+                          {hasQuestions && (
+                            <span
+                              className={`sidebar-subtopic-chevron ${
+                                isSubTopicExpanded ? "expanded" : ""
+                              }`}
+                            >
+                              ▶
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Collapsible Questions List */}
+                        {isSubTopicExpanded && hasQuestions && (
+                          <div className="sidebar-questions-list">
+                            {subTopic.questions.map((question, qIdx) => {
+                              const isQActive =
+                                activeSubTopicId === subTopic.id &&
+                                activeQuestionId === question.id;
+                              const bookmarked = isBookmarked(question.id);
+
+                              return (
+                                <button
+                                  key={question.id}
+                                  type="button"
+                                  className={`sidebar-question-btn ${
+                                    isQActive ? "active" : ""
+                                  }`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onSelectQuestion) {
+                                      onSelectQuestion(category.id, subTopic.id, question.id);
+                                    } else {
+                                      onSelectSubTopic(category.id, subTopic.id);
+                                    }
+                                    onClose();
+                                  }}
+                                  title={question.question}
+                                >
+                                  <span className="sidebar-question-num">
+                                    {qIdx + 1}
+                                  </span>
+                                  <span className="sidebar-question-title">
+                                    {question.question}
+                                  </span>
+                                  {bookmarked && (
+                                    <span
+                                      className="sidebar-question-bookmark"
+                                      title="Bookmarked"
+                                    >
+                                      🔖
+                                    </span>
+                                  )}
+                                  {question.difficulty && (
+                                    <span
+                                      className={`sidebar-question-diff ${question.difficulty.toLowerCase()}`}
+                                      title={`Difficulty: ${question.difficulty}`}
+                                    >
+                                      {question.difficulty === "Easy"
+                                        ? "E"
+                                        : question.difficulty === "Medium"
+                                        ? "M"
+                                        : "H"}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

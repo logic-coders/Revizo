@@ -187,7 +187,9 @@ export default function SubjectWorkspaceContent({
         subject={subject}
         activeCategoryId={activeItem.categoryId}
         activeSubTopicId={activeItem.subTopic.id}
+        activeQuestionId={activeItem.question.id}
         onSelectSubTopic={handleSelectSubTopic}
+        onSelectQuestion={(catId, topicId, qId) => navigateToQuestion(topicId, qId)}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />

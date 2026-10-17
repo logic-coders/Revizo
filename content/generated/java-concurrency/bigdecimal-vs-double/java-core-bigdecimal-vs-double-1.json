@@ -1,0 +1,35 @@
+{
+  "id": "java-core-bigdecimal-vs-double-1",
+  "question": "Why is `BigDecimal` preferred over `double` for monetary calculations? Why avoid `double` even when the database uses DECIMAL?",
+  "difficulty": "Intermediate",
+  "frequency": 5,
+  "lastVerified": "2026-10-17",
+  "answer": {
+    "quickAnswer": "`double` uses IEEE 754 binary floating-point, which CANNOT precisely represent most decimal fractions (e.g., 0.1 + 0.2 ≠ 0.3). In financial calculations, this causes rounding errors that compound across millions of transactions. `BigDecimal` stores numbers in exact decimal form and gives you full control over rounding mode and scale.",
+    "mentalModel": "Imagine counting money with a ruler instead of a scale. A ruler measures in millimeters — it can't natively express 1/3 of a millimeter, so it always approximates. `double` is that ruler, measuring in binary fractions. `BigDecimal` is a precise digital scale that measures in exact decimal increments, just like how real money works.",
+    "whatItIs": "`double` is a 64-bit IEEE 754 floating-point primitive. Internally, it stores numbers as a binary fraction (e.g., 0.1 is stored as 0.1000000000000000055511151231257827021181583404541015625). `BigDecimal` is a Java class that stores an arbitrary-precision integer (`unscaledValue`) and a `scale` (number of decimal places), allowing exact decimal representation with configurable rounding.",
+    "whyItExists": "`double` is fast but inexact by design — acceptable for scientific computing where tiny errors don't matter. For money, even a 0.000001 cent error, multiplied across 10 million transactions, can result in real financial discrepancies. `BigDecimal` was provided specifically to handle monetary and other high-precision decimal arithmetic correctly.",
+    "codeDemo": {
+      "language": "java",
+      "code": "// ❌ The double problem — floating-point imprecision\ndouble price = 0.1 + 0.2;\nSystem.out.println(price); // 0.30000000000000004 ← WRONG!\n\ndouble total = 1.005 * 100;\nSystem.out.println(total); // 100.49999999999999 ← rounds to 100.49, not 100.50!\n\n// ❌ Even when reading from DB as DECIMAL, intermediate math corrupts it:\ndouble balance = 100.10; // Read from DB correctly\ndouble fee = 0.10;\ndouble result = balance - fee;\nSystem.out.println(result); // 99.99999999999999 ← incorrect!\n\n// ✅ Correct: Use BigDecimal from the start\nBigDecimal price = new BigDecimal(\"0.1\"); // Always use String constructor!\nBigDecimal tax = new BigDecimal(\"0.2\");\nBigDecimal total = price.add(tax);\nSystem.out.println(total); // 0.3 ← exact!\n\n// ❌ Common mistake: BigDecimal from double is still imprecise!\nBigDecimal wrong = new BigDecimal(0.1); // 0.1000000000000000055511...\nBigDecimal right = new BigDecimal(\"0.1\"); // exactly 0.1\n\n// ✅ Rounding for financial display (e.g., banking)\nBigDecimal amount = new BigDecimal(\"100.005\");\nBigDecimal rounded = amount.setScale(2, RoundingMode.HALF_UP);\nSystem.out.println(rounded); // 100.01\n\n// ✅ In Spring Boot with JPA — use BigDecimal for money fields\n@Entity\npublic class Account {\n    @Column(precision = 19, scale = 4) // Maps to DECIMAL(19,4)\n    private BigDecimal balance;\n}\n\n// ✅ Comparison: NEVER use == or .equals() for scale mismatch\nBigDecimal a = new BigDecimal(\"1.0\");\nBigDecimal b = new BigDecimal(\"1.00\");\nSystem.out.println(a.equals(b));      // false! (different scale)\nSystem.out.println(a.compareTo(b));   // 0 ← correct for value equality"
+    },
+    "tradeOffs": "`BigDecimal` is slower and more verbose than `double`. For high-performance bulk calculations (e.g., simulations, analytics), `double` may be acceptable if you control rounding at the end. For any user-facing financial operation (payments, balances, invoices), always use `BigDecimal`. Always use `compareTo()` for value equality, not `equals()`, since `equals()` also compares scale.",
+    "theyMightAskNext": [
+      {
+        "question": "Can `volatile` make a bank balance thread-safe?",
+        "answer": "`volatile` guarantees that all threads see the latest written value (visibility), but it does NOT make compound operations atomic. `balance -= amount` is three operations: read, subtract, write. Two threads can both read the same balance, both compute the new value, and one write overwrites the other. You need `synchronized`, `AtomicReference<BigDecimal>`, or database-level locking."
+      },
+      {
+        "question": "What `DECIMAL` precision should you use in the database for money?",
+        "answer": "A common choice is `DECIMAL(19, 4)` — 15 digits before the decimal point and 4 after — which handles all common currencies including those with 3 or 4 decimal places (e.g., Kuwaiti Dinar, Bitcoin satoshi representation). The JPA mapping is `@Column(precision = 19, scale = 4)`."
+      }
+    ],
+    "usedInProduction": "Every serious fintech or banking application uses `BigDecimal` for all monetary fields. Frameworks like Spring Boot map `BigDecimal` directly to SQL `DECIMAL`/`NUMERIC` columns via JPA/Hibernate. Stripe's Java SDK, PayPal's APIs, and most payment processors internally use `BigDecimal` or integer-based arithmetic (storing amounts in the smallest currency unit, e.g., paise or cents) to avoid floating-point errors entirely.",
+    "relatedTopics": [
+      { "title": "Java Primitive Types and Memory", "id": "java-primitive-types" },
+      { "title": "volatile and thread safety", "id": "volatile-java-memory-model" },
+      { "title": "Transaction Isolation Levels", "id": "transaction-isolation-levels" },
+      { "title": "Hibernate and JPA Mappings", "id": "hibernate-jpa-mappings" }
+    ]
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "id": "jvm-internals-heap-dump-vs-thread-dump-1",
+  "question": "What is the difference between a Heap Dump and a Thread Dump? What tools do you use to investigate Java memory issues?",
+  "difficulty": "Advanced",
+  "frequency": 4,
+  "lastVerified": "2026-10-17",
+  "answer": {
+    "quickAnswer": "A **Thread Dump** is a snapshot of all threads' current state and stack traces — used to diagnose deadlocks, high CPU, or hanging threads. A **Heap Dump** is a snapshot of all objects currently in JVM memory — used to diagnose `OutOfMemoryError`, memory leaks, or unexpectedly high memory usage.",
+    "mentalModel": "A Thread Dump is like taking attendance of all workers in a factory at one moment — you see exactly what each worker is doing (running, waiting, blocked). A Heap Dump is like taking an inventory of everything inside the factory's warehouse — you see every object stored there, how much space it takes, and who's holding a reference to it.",
+    "whatItIs": "**Thread Dump**: A text file listing every thread in the JVM with its state (`RUNNABLE`, `BLOCKED`, `WAITING`, `TIMED_WAITING`) and its full stack trace at the moment of capture. Captures CPU-time threads and lock ownership. **Heap Dump**: A binary snapshot (`.hprof` file) of the entire JVM heap at a moment in time — every object, its type, size, and reference graph. Used with analysis tools like Eclipse MAT or VisualVM.",
+    "whyItExists": "When a Java application is misbehaving in production — consuming 100% CPU, hanging, or crashing with OOM — you can't attach a debugger. Heap and Thread dumps are the primary forensic tools that let you inspect the live or crashed JVM state without stopping or redeploying it.",
+    "codeDemo": {
+      "language": "bash",
+      "code": "# --- THREAD DUMP ---\n\n# Method 1: jstack (JDK tool, most common)\njstack <pid> > thread-dump.txt\n\n# Method 2: kill -3 (sends SIGQUIT to JVM, dumps to stdout)\nkill -3 <pid>\n\n# Method 3: From inside the app (programmatic)\nThread.getAllStackTraces().forEach((thread, stack) -> {\n    System.out.println(thread.getName() + \" - \" + thread.getState());\n    for (StackTraceElement e : stack) System.out.println(\"  \" + e);\n});\n\n# Example thread dump output snippet:\n# \"http-nio-8080-exec-1\" #25 BLOCKED\n#   waiting to lock <0x000000076b392f90> (java.lang.Object)\n# → This tells you Thread 25 is blocked waiting for a lock held by another thread\n\n\n# --- HEAP DUMP ---\n\n# Method 1: jmap (JDK tool)\njmap -dump:format=b,file=heap.hprof <pid>\n\n# Method 2: Auto-dump on OOM (configure in JVM startup flags)\n-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/var/log/app/heap.hprof\n\n# Method 3: Via JConsole or VisualVM GUI\n# → Connect to running process → MBeans → com.sun.management.HotSpotDiagnostic → dumpHeap\n\n# Method 4: Programmatically (Spring Boot Actuator)\n# GET /actuator/heapdump → downloads heap.hprof\n\n# --- ANALYZE HEAP DUMP ---\n# Open heap.hprof in:\n# - Eclipse Memory Analyzer Tool (MAT) — best for leak detection\n# - VisualVM — GUI, good for interactive exploration\n# - IntelliJ IDEA — built-in heap dump viewer\n\n# Key things to look for in MAT:\n# 1. 'Leak Suspects' report — finds objects accumulating unreleased references\n# 2. Dominator tree — shows top memory consumers\n# 3. OQL (Object Query Language) — query heap like SQL"
+    },
+    "diagnosisGuide": [
+      {
+        "symptom": "High CPU usage (100% on one or more cores)",
+        "tool": "Thread Dump",
+        "approach": "Take 3 thread dumps 10 seconds apart. Look for threads stuck in `RUNNABLE` state with the same stack trace — this is a hot loop or infinite computation."
+      },
+      {
+        "symptom": "Application hanging / requests not completing",
+        "tool": "Thread Dump",
+        "approach": "Look for threads in `BLOCKED` state. Check which thread holds the lock they're all waiting for. This is a deadlock or lock contention issue."
+      },
+      {
+        "symptom": "OutOfMemoryError: Java heap space",
+        "tool": "Heap Dump",
+        "approach": "Use JVM flag `-XX:+HeapDumpOnOutOfMemoryError`. Open in Eclipse MAT, run 'Leak Suspects' report. Find the object accumulating unreleased references (common: growing Lists, Maps, Hibernate session caches, ThreadLocals)."
+      },
+      {
+        "symptom": "OutOfMemoryError: Metaspace",
+        "tool": "Heap Dump + jstat",
+        "approach": "Usually caused by class loader leaks (dynamic proxies, Groovy scripts, CGLIB in Spring). Run `jstat -gcmetacapacity <pid>` to monitor metaspace growth."
+      },
+      {
+        "symptom": "Incorrectly configured cache causing OutOfMemoryError",
+        "tool": "Heap Dump",
+        "approach": "An unbounded in-memory cache (e.g., `@Cacheable` with no eviction policy, or a static `HashMap` used as cache) keeps accumulating objects. Heap dump will show the cache collection as the dominator. Fix: add TTL, max-size eviction, or use a proper cache like Caffeine/Redis."
+      }
+    ],
+    "tradeOffs": "Taking a heap dump on a production JVM briefly pauses the JVM (stop-the-world) and generates a large file (hundreds of MB to GB). Do it carefully during low-traffic periods. Thread dumps are much lighter and can be taken repeatedly without significant impact. Java Flight Recorder (JFR) is a low-overhead continuous profiling alternative that avoids stop-the-world pauses.",
+    "theyMightAskNext": [
+      {
+        "question": "How does Java Flight Recorder help with memory analysis?",
+        "answer": "Java Flight Recorder (JFR) is a low-overhead profiling and event collection framework built into the JVM (open-sourced in Java 11). Unlike heap dumps, JFR records a continuous stream of GC events, memory allocation rates, thread activity, and exception stacks. You can analyze it with JDK Mission Control (JMC). It's invaluable for production profiling because it has <2% overhead and doesn't stop the JVM."
+      },
+      {
+        "question": "What is Metaspace and how is it different from Heap?",
+        "answer": "The JVM heap stores object instances. Metaspace (replaced PermGen in Java 8) stores class metadata — the bytecode, method information, and constant pools for every loaded class. Metaspace grows automatically by default (unlike PermGen which had a fixed size). A class loader leak (e.g., a web app being redeployed repeatedly without unloading old classes) causes Metaspace to grow unbounded until OOM."
+      }
+    ],
+    "usedInProduction": "In DevOps and SRE roles, JVM flags `-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/dumps/` are standard in every Kubernetes pod's JVM startup configuration. Spring Boot Actuator's `/actuator/heapdump` endpoint is commonly used during incidents. Teams using AWS or GCP often stream thread dumps to centralized logging (CloudWatch, Stackdriver) for analysis without SSH access to pods.",
+    "relatedTopics": [
+      { "title": "JVM Memory Model (Heap, Metaspace, Stack)", "id": "jvm-memory-model" },
+      { "title": "Garbage Collection: G1 vs ZGC", "id": "gc-g1-vs-zgc" },
+      { "title": "Java Flight Recorder", "id": "java-flight-recorder" },
+      { "title": "Spring Boot Actuator", "id": "spring-boot-actuator" }
+    ]
+  }
+}

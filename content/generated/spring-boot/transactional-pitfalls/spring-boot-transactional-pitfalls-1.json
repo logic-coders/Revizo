@@ -1,0 +1,61 @@
+{
+  "id": "spring-boot-transactional-pitfalls-1",
+  "question": "Why might `@Transactional` NOT roll back, even when an exception is thrown?",
+  "difficulty": "Advanced",
+  "frequency": 5,
+  "lastVerified": "2026-10-17",
+  "answer": {
+    "quickAnswer": "`@Transactional` only rolls back on `RuntimeException` (unchecked) by default — checked exceptions do NOT trigger rollback. It also fails silently when called from within the same class (self-invocation bypasses the proxy), when the method is not public, or when the exception is swallowed.",
+    "mentalModel": "Spring's `@Transactional` works by wrapping your class in a proxy — imagine a security guard standing outside a building. The guard only intercepts visitors who come through the front door (calls from other beans). If you sneak between rooms inside the building (self-invocation), the guard never knows the transaction happened and can't roll it back.",
+    "whatItIs": "Spring implements `@Transactional` using AOP (Aspect-Oriented Programming) proxies. When another bean calls a `@Transactional` method, Spring intercepts the call, begins a transaction, runs the method, and commits or rolls back based on the outcome. The key word is *proxy* — this mechanism has several well-known pitfalls that catch even experienced developers.",
+    "whyItExists": "Managing `begin transaction`, `commit`, and `rollback` manually in every service method is error-prone and repetitive. `@Transactional` externalizes this concern declaratively, but the proxy-based implementation has inherent limitations you must understand.",
+    "codeDemo": {
+      "language": "java",
+      "code": "// ❌ PITFALL 1: Checked exceptions do NOT roll back by default\n@Transactional\npublic void transferFunds() throws InsufficientFundsException {\n    debit(account);\n    // If this throws InsufficientFundsException (checked), transaction COMMITS!\n    credit(targetAccount);\n}\n// FIX: Explicitly declare rollback for checked exceptions\n@Transactional(rollbackFor = InsufficientFundsException.class)\npublic void transferFunds() throws InsufficientFundsException { ... }\n\n\n// ❌ PITFALL 2: Self-invocation — the proxy is bypassed\n@Service\npublic class PaymentService {\n\n    public void processPayment() {\n        // Direct internal call — Spring proxy is NOT involved!\n        // Transaction will NOT be started. @Transactional is ignored.\n        this.savePayment(); \n    }\n\n    @Transactional\n    public void savePayment() {\n        // This runs WITHOUT a transaction!\n        paymentRepo.save(...);\n    }\n}\n// FIX: Inject the bean into itself, or extract savePayment() to another @Service\n\n\n// ❌ PITFALL 3: Exception is caught and swallowed — rollback never triggers\n@Transactional\npublic void debitAccount(long accountId, double amount) {\n    try {\n        accountRepo.debit(accountId, amount);\n        auditService.log(accountId); // throws RuntimeException\n    } catch (Exception e) {\n        log.error(\"Error\", e); // Exception swallowed — transaction COMMITS!\n    }\n}\n\n\n// ❌ PITFALL 4: Method is not public — proxy cannot intercept it\n@Transactional\nprivate void internalSave() { // @Transactional is silently ignored!\n    repo.save(...);\n}\n\n\n// ❌ PITFALL 5: REQUIRED vs REQUIRES_NEW confusion\n@Transactional // Joins the OUTER transaction\npublic void innerMethod() { ... }\n\n@Transactional(propagation = Propagation.REQUIRES_NEW)\npublic void innerMethod() { ... } // Always starts a FRESH transaction"
+    },
+    "topPitfalls": [
+      {
+        "pitfall": "Checked exceptions don't roll back",
+        "fix": "Use `@Transactional(rollbackFor = Exception.class)` or throw a `RuntimeException`"
+      },
+      {
+        "pitfall": "Self-invocation bypasses the proxy",
+        "fix": "Inject `ApplicationContext` and get the bean, or move the method to a separate `@Service`"
+      },
+      {
+        "pitfall": "Exception is caught/swallowed inside the method",
+        "fix": "Rethrow the exception, or call `TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()`"
+      },
+      {
+        "pitfall": "Method is `private` or `protected`",
+        "fix": "Make it `public` — Spring's JDK/CGLIB proxies can only intercept public methods"
+      },
+      {
+        "pitfall": "Wrong transaction propagation (`REQUIRED` joins existing, `REQUIRES_NEW` creates fresh)",
+        "fix": "Understand `REQUIRED` (default), `REQUIRES_NEW`, `NESTED`, `MANDATORY`, and choose correctly"
+      },
+      {
+        "pitfall": "Rollback in a `REQUIRES_NEW` inner transaction but the outer commits",
+        "fix": "Use `NESTED` if you want partial savepoints, or handle the exception boundary carefully"
+      }
+    ],
+    "tradeOffs": "The proxy-based approach is clean but opaque — mistakes are silent. Consider using `@TransactionalEventListener` for events that should fire after a commit. For critical financial flows, always write integration tests with `@DataJpaTest` or Testcontainers that verify rollback behavior under failure.",
+    "theyMightAskNext": [
+      {
+        "question": "What is the difference between REQUIRED, REQUIRES_NEW, and NESTED propagation?",
+        "answer": "`REQUIRED` (default): joins an existing transaction or creates one. `REQUIRES_NEW`: always suspends the current transaction and starts a fresh one — the outer transaction is unaffected by the inner's outcome. `NESTED`: uses a savepoint within the outer transaction — if the nested part fails, it rolls back to the savepoint but the outer can still commit. `NESTED` requires a JDBC driver that supports savepoints."
+      },
+      {
+        "question": "What happens if money is debited but the application crashes before credit?",
+        "answer": "If running inside a single `@Transactional` method, the DB rolls back the debit on application restart (the transaction was never committed). If debit and credit are in separate services/microservices, you need a distributed transaction solution: the Saga pattern (choreography or orchestration), outbox pattern, or two-phase commit. The Saga pattern is the industry standard for microservices."
+      }
+    ],
+    "usedInProduction": "In banking and payment systems, `@Transactional(rollbackFor = Exception.class)` is always used instead of the default to ensure ALL exceptions trigger rollback. Teams use integration tests with Testcontainers to validate that a simulated crash mid-transfer leaves the database in a consistent state. Self-invocation bugs are caught via Spring proxy validation in code review.",
+    "relatedTopics": [
+      { "title": "Transaction Isolation Levels", "id": "transaction-isolation-levels" },
+      { "title": "Spring Bean Lifecycle", "id": "spring-bean-lifecycle" },
+      { "title": "Saga Pattern (Distributed Transactions)", "id": "saga-pattern" },
+      { "title": "Spring AOP and Proxies", "id": "spring-aop-proxies" }
+    ]
+  }
+}
