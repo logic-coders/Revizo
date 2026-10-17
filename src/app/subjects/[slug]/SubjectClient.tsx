@@ -53,13 +53,16 @@ export default function SubjectWorkspaceContent({
     return flat;
   }, [subject]);
 
-  // Handle default redirect if topicId/questionId are missing
+  // Handle default redirect if topicId/questionId are missing or invalid
   useEffect(() => {
     if (subject && allQuestions.length > 0) {
-      if (!topicId || !questionId) {
+      const match = allQuestions.find(
+        (item) => item.subTopic.id === topicId && item.question.id === questionId
+      );
+      if (!match) {
         const first = allQuestions[0];
         router.replace(
-          `/subjects/${subject.slug}/${first.subTopic.id}/${first.question.id}`
+          `/subjects/${subject.slug}/${first.subTopic.id}/${first.question.id}/`
         );
       }
     }
@@ -67,13 +70,16 @@ export default function SubjectWorkspaceContent({
 
   // Find the active item from the flat list
   const activeItemIndex = useMemo(() => {
-    if (!topicId || !questionId) return -1;
-    return allQuestions.findIndex(
+    if (!topicId || !questionId) return 0;
+    const idx = allQuestions.findIndex(
       (item) => item.subTopic.id === topicId && item.question.id === questionId
     );
+    return idx >= 0 ? idx : 0;
   }, [allQuestions, topicId, questionId]);
 
-  const activeItem = activeItemIndex >= 0 ? allQuestions[activeItemIndex] : null;
+  const activeItem = activeItemIndex >= 0 && activeItemIndex < allQuestions.length
+    ? allQuestions[activeItemIndex]
+    : (allQuestions[0] || null);
 
   const prevItem = activeItemIndex > 0 ? allQuestions[activeItemIndex - 1] : null;
   const nextItem =
@@ -87,7 +93,7 @@ export default function SubjectWorkspaceContent({
       const firstQ = allQuestions.find((q) => q.subTopic.id === subTopicId);
       if (firstQ) {
         router.push(
-          `/subjects/${slug}/${firstQ.subTopic.id}/${firstQ.question.id}`
+          `/subjects/${slug}/${firstQ.subTopic.id}/${firstQ.question.id}/`
         );
       }
     },
@@ -96,7 +102,7 @@ export default function SubjectWorkspaceContent({
 
   const navigateToQuestion = useCallback(
     (targetTopicId: string, targetQuestionId: string) => {
-      router.push(`/subjects/${slug}/${targetTopicId}/${targetQuestionId}`);
+      router.push(`/subjects/${slug}/${targetTopicId}/${targetQuestionId}/`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
     [router, slug]

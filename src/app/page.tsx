@@ -59,7 +59,7 @@ export default function HomePage() {
             return (
               <CardWrapper
                 key={subject.id}
-                href={hasContent ? `/subjects/${subject.slug}` : "#"}
+                href={hasContent ? `/subjects/${subject.slug}/` : "#"}
                 className="subject-card"
                 style={
                   {
